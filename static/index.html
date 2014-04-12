@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html class="expanded">
+<head>
+<meta charset="UTF-8">
+<title>Title of the document</title>
+<style type="text/css">
+.expanded {
+  width: 100%;
+  height: 100%;
+}
+tr.input-diff-text {
+  height:45%;
+}
+.input-diff-text td {
+  width:50%;
+}
+.input-diff-text textarea {
+  width: 100%;
+  height: 100%;
+}
+tr.output-diff-text {
+  height:45%;
+}
+.output-diff-text td {
+  width:100%;
+}
+.output-diff-text textarea {
+  width: 100%;
+  height: 100%;
+}
+</style>
+</head>
+
+<body class="expanded">
+
+<form method="POST" action="/ajax/diff" class="expanded">
+
+<table class="expanded">
+<tr class="input-diff-text">
+ <td>
+  <textarea name="text_from"></textarea>
+ </td>
+ <td>
+  <textarea name="text_to"></textarea>
+ </td>
+</tr>
+<tr class="output-diff-text">
+ <td colspan="2">
+  <textarea readonly>THIS IS DUMMY FIELD</textarea>
+ </td>
+</tr>
+<tr>
+ <td colspan="2">
+  <input type="checkbox" name="is_word_diff" value="1">word diff
+  <input type="submit" name="submit" value="DIFF">
+ </td>
+</tr>
+</table>
+
+</form>
+
+</body>
+
+</html>
