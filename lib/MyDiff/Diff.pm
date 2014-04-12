@@ -25,6 +25,34 @@ sub _ignore_spaces ($) {
     [map { /^\s+$/ ? $IGNORED_TERM : $_} @$ref_contents];
 }
 
+sub _normarize_diff ($$$) {
+    my ($original_from, $original_to, $diffs) = @_;
+
+    my @normarized_diff;
+    my ($cur_stat, $cur_slot);
+    my ($original_index_from, $original_index_to) = (0, 0);
+    for my $diff (@$diffs) {
+        if (! defined $cur_stat || $diff->[0] ne $cur_stat) {
+            push @normarized_diff, ($cur_slot = [$diff->[0], '', '']);
+            $cur_stat = $diff->[0];
+        }
+        $cur_slot->[1] .= _as_html (
+            $diff->[1] eq $IGNORED_TERM
+                ? $original_from->[$original_index_from]
+                : $diff->[1]
+        );
+        $cur_slot->[2] .= _as_html(
+            $diff->[2] eq $IGNORED_TERM
+                ? $original_to->[$original_index_to]
+                : $diff->[2]
+        );
+
+        $original_index_from++ if $diff->[0] =~ /^[uc\-]$/;
+        $original_index_to++   if $diff->[0] =~ /^[uc+]$/;
+    }
+    \@normarized_diff;
+}
+
 sub _as_html ($) {
     my $text = shift;
     $text =~ s/&/&amp;/g;
@@ -35,29 +63,18 @@ sub _as_html ($) {
     $text;
 }
 
-sub _diff_to_html ($$) {
-    my ($original, $diffs) = @_;
+sub _diff_to_html ($) {
+    my $diffs = shift;
     my @outputs;
-    my $original_index = 0;
     for my $diff (@$diffs) {
-        my $original_term = $original->[$original_index];
-        my $diff_from = _as_html (
-            $diff->[1] eq $IGNORED_TERM ? $original_term : $diff->[1]
-        );
-        my $diff_to   = _as_html(
-            $diff->[2] eq $IGNORED_TERM ? ' ' : $diff->[2]
-        );
         if ($diff->[0] eq 'u') {
-            $original_index++;
-            push @outputs, $diff_from;
+            push @outputs, $diff->[1];
         } elsif ($diff->[0] eq 'c') {
-            $original_index++;
-            push @outputs, "<del>$diff_from</del>", "<ins>$diff_to</ins>";
+            push @outputs, "<del>$diff->[1]</del>", "<ins>$diff->[2]</ins>";
         } elsif ($diff->[0] eq '-') {
-            push @outputs, "<del>$diff_from</del>";
-            $original_index++;
+            push @outputs, "<del>$diff->[1]</del>";
         } elsif ($diff->[0] eq '+') {
-            push @outputs, "<ins>$diff_to</ins>";
+            push @outputs, "<ins>$diff->[2]</ins>";
         }
     }
     join '', @outputs;
@@ -70,7 +87,7 @@ sub html_diff ($$;$) {
     my $to   = $parser->($text2);
     my $sdiff = sdiff(_ignore_spaces $from, _ignore_spaces $to);
 
-     _diff_to_html($from, $sdiff);
+    _diff_to_html(_normarize_diff($from, $to, $sdiff));
 }
 
 1;
