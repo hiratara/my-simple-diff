@@ -21,4 +21,7 @@ $(function ($) {
         event.preventDefault();
         submitForm($(this));
     });
+    $("#main_from").bind("reset", function (event) {
+        $("#display-result").html("");
+    });
 });
