@@ -1,0 +1,34 @@
+.expanded {
+  width: 100%;
+  height: 100%;
+}
+tr.input-diff-text {
+  height:45%;
+}
+.input-diff-text td {
+  width:50%;
+}
+.input-diff-text textarea {
+  width: 100%;
+  height: 100%;
+}
+tr.output-diff-text {
+  height:45%;
+}
+.output-diff-text td {
+  width:100%;
+}
+#display-result {
+  width: 100%;
+  height: 100%;
+}
+
+#display-result ins {
+  background-color: #AAAAFF;
+  text-decoration: none;
+}
+
+#display-result del {
+  background-color: #FFAAAA;
+  text-decoration: none;
+}
