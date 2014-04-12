@@ -36,16 +36,12 @@ sub _normarize_diff ($$$) {
             push @normarized_diff, ($cur_slot = [$diff->[0], '', '']);
             $cur_stat = $diff->[0];
         }
-        $cur_slot->[1] .= _as_html (
-            $diff->[1] eq $IGNORED_TERM
-                ? $original_from->[$original_index_from]
-                : $diff->[1]
-        );
-        $cur_slot->[2] .= _as_html(
-            $diff->[2] eq $IGNORED_TERM
-                ? $original_to->[$original_index_to]
-                : $diff->[2]
-        );
+        $cur_slot->[1] .= $diff->[1] eq $IGNORED_TERM
+            ? $original_from->[$original_index_from]
+            : $diff->[1];
+        $cur_slot->[2] .= $diff->[2] eq $IGNORED_TERM
+            ? $original_to->[$original_index_to]
+            : $diff->[2];
 
         $original_index_from++ if $diff->[0] =~ /^[uc\-]$/;
         $original_index_to++   if $diff->[0] =~ /^[uc+]$/;
@@ -59,6 +55,7 @@ sub _as_html ($) {
     $text =~ s/</&lt;/g;
     $text =~ s/>/&gt;/g;
     $text =~ s/"/&quot;/g;
+    $text =~ s/[ \t]/&nbsp;/g;
     $text =~ s/(\r?\n|\r)/$1<br>/g;
     $text;
 }
@@ -67,14 +64,16 @@ sub _diff_to_html ($) {
     my $diffs = shift;
     my @outputs;
     for my $diff (@$diffs) {
+        my $from_html = _as_html $diff->[1];
+        my $to_html   = _as_html $diff->[2];
         if ($diff->[0] eq 'u') {
-            push @outputs, $diff->[1];
+            push @outputs, $from_html;
         } elsif ($diff->[0] eq 'c') {
-            push @outputs, "<del>$diff->[1]</del>", "<ins>$diff->[2]</ins>";
+            push @outputs, "<del>$from_html</del>", "<ins>$to_html</ins>";
         } elsif ($diff->[0] eq '-') {
-            push @outputs, "<del>$diff->[1]</del>";
+            push @outputs, "<del>$from_html</del>";
         } elsif ($diff->[0] eq '+') {
-            push @outputs, "<ins>$diff->[2]</ins>";
+            push @outputs, "<ins>$to_html</ins>";
         }
     }
     join '', @outputs;
