@@ -1,6 +1,7 @@
 package MyDiff::Diff;
 use strict;
 use warnings;
+use utf8;
 use Algorithm::Diff qw(sdiff);
 use Exporter qw(import);
 our @EXPORT_OK = 'html_diff';
