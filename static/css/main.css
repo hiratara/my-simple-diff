@@ -31,5 +31,5 @@ tr.output-diff-text {
 
 #display-result del {
   background-color: #FFAAAA;
-  text-decoration: none;
+  text-decoration: line-through;
 }
