@@ -24,15 +24,28 @@ sub _ignore_spaces ($) {
     [map { /^\s+$/ ? $IGNORED_TERM : $_} @$ref_contents];
 }
 
+sub _as_html ($) {
+    my $text = shift;
+    $text =~ s/&/&amp;/g;
+    $text =~ s/</&lt;/g;
+    $text =~ s/>/&gt;/g;
+    $text =~ s/"/&quot;/g;
+    $text =~ s/(\r?\n|\r)/$1<br>/g;
+    $text;
+}
+
 sub _diff_to_html ($$) {
     my ($original, $diffs) = @_;
     my @outputs;
     my $original_index = 0;
     for my $diff (@$diffs) {
         my $original_term = $original->[$original_index];
-        my $diff_from = $diff->[1] eq $IGNORED_TERM
-                            ? $original_term : $diff->[1];
-        my $diff_to   = $diff->[2] eq $IGNORED_TERM ? ' ' : $diff->[2];
+        my $diff_from = _as_html (
+            $diff->[1] eq $IGNORED_TERM ? $original_term : $diff->[1]
+        );
+        my $diff_to   = _as_html(
+            $diff->[2] eq $IGNORED_TERM ? ' ' : $diff->[2]
+        );
         if ($diff->[0] eq 'u') {
             $original_index++;
             push @outputs, $diff_from;
@@ -46,9 +59,7 @@ sub _diff_to_html ($$) {
             push @outputs, "<ins>$diff_to</ins>";
         }
     }
-    my $html = join '', @outputs;
-    $html =~ s/(\r?\n|\r)/$1<br>/g;
-    $html;
+    join '', @outputs;
 }
 
 sub html_diff ($$;$) {
