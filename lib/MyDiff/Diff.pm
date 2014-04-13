@@ -2,6 +2,7 @@ package MyDiff::Diff;
 use strict;
 use warnings;
 use utf8;
+use List::MoreUtils qw(any);
 use Algorithm::Diff qw(sdiff);
 use Exporter qw(import);
 our @EXPORT_OK = 'html_diff';
@@ -51,11 +52,15 @@ sub _normarize_diff ($) {
     my ($diffs) = @_;
 
     my @normarized_diff;
-    my ($cur_stat, $cur_slot);
+    my ($cur_slot, $cur_is_same);
     for my $diff (@$diffs) {
-        if (! defined $cur_stat || $diff->[0] ne $cur_stat) {
+        die "You must call _recover_ignored_terms first"
+                                  if any { $diff->[$_] eq $IGNORED_TERM } 1, 2;
+
+        my $is_same = $diff->[0] eq 'u';
+        if (! defined $cur_slot || $is_same xor $cur_is_same) {
             push @normarized_diff, ($cur_slot = [$diff->[0], '', '']);
-            $cur_stat = $diff->[0];
+            $cur_is_same = $is_same;
         }
         $cur_slot->[1] .= $diff->[1];
         $cur_slot->[2] .= $diff->[2];
