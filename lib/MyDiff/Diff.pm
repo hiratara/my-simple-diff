@@ -25,26 +25,40 @@ sub _ignore_spaces ($) {
     [map { /^\s+$/ ? $IGNORED_TERM : $_} @$ref_contents];
 }
 
-sub _normarize_diff ($$$) {
+sub _recover_ignored_terms ($$$) {
     my ($original_from, $original_to, $diffs) = @_;
+
+    my @recovered;
+    my ($original_index_from, $original_index_to) = (0, 0);
+    for my $diff (@$diffs) {
+        push @recovered, [
+            $diff->[0],
+            ($diff->[1] eq $IGNORED_TERM
+                ? $original_from->[$original_index_from]
+                : $diff->[1]),
+            ($diff->[2] eq $IGNORED_TERM
+                ? $original_to->[$original_index_to]
+                : $diff->[2]),
+        ];
+
+        $original_index_from++ if $diff->[0] =~ /^[uc\-]$/;
+        $original_index_to++   if $diff->[0] =~ /^[uc+]$/;
+    }
+    \@recovered;
+}
+
+sub _normarize_diff ($) {
+    my ($diffs) = @_;
 
     my @normarized_diff;
     my ($cur_stat, $cur_slot);
-    my ($original_index_from, $original_index_to) = (0, 0);
     for my $diff (@$diffs) {
         if (! defined $cur_stat || $diff->[0] ne $cur_stat) {
             push @normarized_diff, ($cur_slot = [$diff->[0], '', '']);
             $cur_stat = $diff->[0];
         }
-        $cur_slot->[1] .= $diff->[1] eq $IGNORED_TERM
-            ? $original_from->[$original_index_from]
-            : $diff->[1];
-        $cur_slot->[2] .= $diff->[2] eq $IGNORED_TERM
-            ? $original_to->[$original_index_to]
-            : $diff->[2];
-
-        $original_index_from++ if $diff->[0] =~ /^[uc\-]$/;
-        $original_index_to++   if $diff->[0] =~ /^[uc+]$/;
+        $cur_slot->[1] .= $diff->[1];
+        $cur_slot->[2] .= $diff->[2];
     }
     \@normarized_diff;
 }
@@ -86,7 +100,7 @@ sub html_diff ($$;$) {
     my $to   = $parser->($text2);
     my $sdiff = sdiff(_ignore_spaces $from, _ignore_spaces $to);
 
-    _diff_to_html(_normarize_diff($from, $to, $sdiff));
+    _diff_to_html(_normarize_diff(_recover_ignored_terms($from, $to, $sdiff)));
 }
 
 1;
