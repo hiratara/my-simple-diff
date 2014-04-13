@@ -8,6 +8,13 @@ DISTRIBUTIONS
       Algorithm::DiffOld 1.1
     requirements:
       ExtUtils::MakeMaker 0
+  Algorithm-Diff-XS-0.04
+    pathname: A/AU/AUDREYT/Algorithm-Diff-XS-0.04.tar.gz
+    provides:
+      Algorithm::Diff::XS 0.04
+    requirements:
+      Algorithm::Diff 1.19
+      ExtUtils::MakeMaker 0
   Apache-LogFormat-Compiler-0.30
     pathname: K/KA/KAZEBURO/Apache-LogFormat-Compiler-0.30.tar.gz
     provides:
