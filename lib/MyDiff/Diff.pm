@@ -86,7 +86,7 @@ sub _diff_to_html ($) {
         my $from_html = _as_html $diff->[1];
         my $to_html   = _as_html $diff->[2];
         if ($diff->[0] eq 'u') {
-            push @outputs, $from_html;
+            push @outputs, $to_html;
         } elsif ($diff->[0] eq 'c') {
             push @outputs, "<del>$from_html</del>", "<ins>$to_html</ins>";
         } elsif ($diff->[0] eq '-') {
