@@ -66,6 +66,16 @@ sub _normarize_diff ($) {
         $cur_slot->[1] .= $diff->[1];
         $cur_slot->[2] .= $diff->[2];
     }
+
+    # Fix modified marks, + or - or c
+    for (@normarized_diff) {
+        if ($_->[0] ne 'u') {
+            $_->[0] = $_->[1] eq '' ? '+' :
+                      $_->[2] eq '' ? '-' :
+                                      'c';
+        }
+    }
+
     \@normarized_diff;
 }
 
