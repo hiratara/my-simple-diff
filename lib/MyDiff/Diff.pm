@@ -98,14 +98,130 @@ sub _diff_to_html ($) {
     join '', @outputs;
 }
 
+sub _line_diff ($$) {
+    use List::Util qw(sum);
+    my ($lines1, $lines2) = @_;
+    my @xs = map { length $_ } @$lines1;
+    my @ys = map { length $_ } @$lines2;
+    my @diag;
+    my $diag = sub {
+        my ($x, $y) = @_;
+        ($diag[$y][$x] //= do {
+            my $sdiff = sdiff(_ignore_spaces $lines1->[$x], _ignore_spaces $lines2->[$y]);
+            $sdiff = _recover_ignored_terms($lines1->[$x], $lines2->[$y], $sdiff);
+            my $cost = sum map {
+                {'-' => 1, '+' => 1, 'c' => 2, 'u' => 0}->{$_->[0]}
+            } @$sdiff;
+            {cost => $cost, diff => $sdiff};
+        })->{cost};
+    };
+
+    my $inf_left_estimate = do {
+        my @memoize;
+        sub ($) {
+            my ($node) = @_;
+
+            $memoize[$node->[1]][$node->[0]] //= do {
+                my $left_x = @xs - $node->[0];
+                my $left_y = @ys - $node->[1];
+
+                my ($left, $diff);
+                if ($left_x == $left_y) {
+                    0;
+                } else {
+                    if ($left_x < $left_y) {
+                        $left = [@ys[$node->[1] .. $#ys]];
+                        $diff = $left_y - $left_x;
+                    } else {
+                        $left = [@xs[$node->[0] .. $#xs]];
+                        $diff = $left_x - $left_y;
+                    }
+
+                    sum +(sort @$left)[0 .. ($diff - 1)];
+                }
+            };
+        };
+    };
+
+    my @queue;
+    my @status;  # $stat[$y][$x] = {from => [$x, $y], expect => $n, queued => bool};
+
+    # CAUTION! You must prepare @status before you call this method
+    my $push_node = sub ($) {
+        my $node = shift;
+        my $st = $status[$node->[1]][$node->[0]];
+        for my $idx (0 .. $#queue) {
+            my $_st = $status[$queue[$idx][1]][$queue[$idx][0]];
+            if ($st->{expect} < $st->{expect}) { # sort by expect value
+                splice @queue, $idx, 0, $node;
+                return;
+            }
+        }
+
+        push @queue, $node; # push to last
+    };
+
+    $status[0][0] = {expect => ($inf_left_estimate->([0, 0])), queued => 1};
+    $push_node->([0, 0]);
+
+    while (my $node = shift @queue) {
+        my ($x, $y) = @$node;
+        last if $x == @xs && $y == @ys; # GOAL!
+
+        my $st = $status[$y][$x];
+        delete $st->{queued} or next;
+
+        my $try_node = sub {
+            my ($node2, $cost) = @_;
+            my ($x2, $y2) = @$node2;
+            return unless $x2 <= @xs && $y2 <= @ys;
+
+            my $expect = $st->{expect} - ($inf_left_estimate->($node))
+                         + $cost + ($inf_left_estimate->($node2));
+            my $st_orig = $status[$y2][$x2];
+            unless (defined $st_orig and $expect >= $st_orig->{expect}) {
+                $status[$y2][$x2] = {from => [$x, $y], expect => $expect, queued => 1};
+                $push_node->([$x2, $y2]);
+            }
+        };
+
+        $try_node->([$x + 1, $y], $xs[$x]);
+        $try_node->([$x, $y + 1], $ys[$y]);
+        $try_node->([$x + 1, $y + 1], $diag->($x, $y));
+    }
+
+    my @results;
+    my $node = [scalar @xs, scalar @ys];
+    while ($node) {
+        my $st = $status[$node->[1]][$node->[0]] or die "[BUG]";
+        my $next_node = $st->{from};
+        unless ($next_node) {
+            # starting points
+            last;
+        } elsif ($node->[0] == $next_node->[0]) {
+            # INSERT
+            unshift @results, ['+', undef, join "", @{$lines2->[$next_node->[1]]}];
+        } elsif ($node->[1] == $next_node->[1]) {
+            # DELETE
+            unshift @results, ['-', join "", @{$lines1->[$next_node->[0]]}, undef];
+        } else {
+            # MODIFIED(diag)
+            unshift @results, @{$diag[$next_node->[1]][$next_node->[0]]{diff}};
+        }
+
+        $node = $next_node;
+    }
+    \@results;
+}
+
 sub html_diff ($$;$) {
     my ($text1, $text2, $is_word_diff) = @_;
     my $parser = $is_word_diff ? \&_parse_words : \&_parse_chars;
-    my $from = $parser->($text1);
-    my $to   = $parser->($text2);
-    my $sdiff = sdiff(_ignore_spaces $from, _ignore_spaces $to);
+    my @from = map { $parser->($_) } split /\n/, $text1;
+    my @to   = map { $parser->($_) } split /\n/, $text2;
+    my $sdiff = _line_diff(\@from, \@to);
 
-    _diff_to_html(_normarize_diff(_recover_ignored_terms($from, $to, $sdiff)));
+    _diff_to_html(_normarize_diff($sdiff));
 }
 
 1;
