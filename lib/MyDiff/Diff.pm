@@ -107,6 +107,8 @@ sub _line_diff ($$) {
     my @diag;
     my $diag = sub {
         my ($x, $y) = @_;
+        $x < @$lines1 && $y < @$lines2 or return; # Out of ranges
+
         ($diag[$y][$x] //= do {
             my $sdiff = sdiff(_ignore_spaces $lines1->[$x], _ignore_spaces $lines2->[$y]);
             $sdiff = _recover_ignored_terms($lines1->[$x], $lines2->[$y], $sdiff);
