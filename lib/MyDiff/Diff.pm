@@ -20,7 +20,7 @@ sub _parse_by_regex ($$) {
 
 sub _parse_words ($) { _parse_by_regex $_[0], qr/\w+|\s+|[^\w\s]+/ }
 sub _parse_chars ($) { _parse_by_regex $_[0], qr/\w|\s+|[^\w\s]/ }
-sub _parse_lines ($) { _parse_by_regex $_[0], qr/[^\n]*(?:\n|$)/ }
+sub _parse_lines ($) { _parse_by_regex $_[0], qr/[^\n]*(?:\n|[^\n]$)/ }
 
 sub _ignore_spaces ($) {
     my $ref_contents = shift;
