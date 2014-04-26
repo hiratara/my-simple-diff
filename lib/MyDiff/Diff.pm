@@ -201,10 +201,10 @@ sub _line_diff ($$) {
             last;
         } elsif ($node->[0] == $next_node->[0]) {
             # INSERT
-            unshift @results, ['+', undef, join "", @{$lines2->[$next_node->[1]]}];
+            unshift @results, ['+', undef, (join "", @{$lines2->[$next_node->[1]]})];
         } elsif ($node->[1] == $next_node->[1]) {
             # DELETE
-            unshift @results, ['-', join "", @{$lines1->[$next_node->[0]]}, undef];
+            unshift @results, ['-', (join "", @{$lines1->[$next_node->[0]]}), undef];
         } else {
             # MODIFIED(diag)
             unshift @results, @{$diag[$next_node->[1]][$next_node->[0]]{diff}};
