@@ -1,6 +1,10 @@
 package MyDiff::Heap;
 use strict;
 use warnings;
+use constant {
+    ITEM  => 0,
+    PRIOR => 1,
+};
 
 sub new {
     my $class = shift;
@@ -16,13 +20,13 @@ sub _swap ($$) {
 
 sub push {
     my ($self, $prior, $item) = @_;
-    push @$self, {prior => $prior, item => $item};
+    push @$self, [$item, $prior];
 
     # Ordering
     my $idx = $#$self;
     while ($idx >= 0) {
         my $parent_idx = int(($idx - 1) / 2);
-        last if $self->[$idx]{prior} <= $self->[$parent_idx]{prior};
+        last if $self->[$idx][PRIOR] <= $self->[$parent_idx][PRIOR];
         _swap ($self->[$idx], $self->[$parent_idx]);
         $idx = $parent_idx;
     }
@@ -45,15 +49,15 @@ sub pop {
             # Select the bigger one
             $child_idx++
                 if $child_idx + 1 < @$self &&
-                   $self->[$child_idx + 1]{prior} > $self->[$child_idx]{prior};
+                   $self->[$child_idx + 1][PRIOR] > $self->[$child_idx][PRIOR];
 
-            last if $self->[$child_idx]{prior} <= $self->[$idx]{prior};
+            last if $self->[$child_idx][PRIOR] <= $self->[$idx][PRIOR];
             _swap ($self->[$child_idx], $self->[$idx]);
             $idx = $child_idx;
         }
     }
 
-    $poped->{item};
+    $poped->[ITEM];
 }
 
 1;
