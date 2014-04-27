@@ -113,8 +113,8 @@ sub _diff_to_html ($) {
 sub _line_diff ($$) {
     use List::Util qw(sum);
     my ($lines1, $lines2) = @_;
-    my @xs = map { length $_ } @$lines1;
-    my @ys = map { length $_ } @$lines2;
+    my @xs = map { scalar @$_ } @$lines1;
+    my @ys = map { scalar @$_ } @$lines2;
     my @no_space_lines1 = map { _ignore_spaces $_ } @$lines1;
     my @no_space_lines2 = map { _ignore_spaces $_ } @$lines2;
 
