@@ -4,7 +4,7 @@ use warnings;
 use utf8;
 use List::MoreUtils qw(any);
 use MyDiff::Heap;
-use Algorithm::Diff qw(sdiff);
+use Algorithm::Diff::XS qw(sdiff);
 use Exporter qw(import);
 our @EXPORT_OK = 'html_diff';
 
@@ -115,14 +115,16 @@ sub _line_diff ($$) {
     my ($lines1, $lines2) = @_;
     my @xs = map { length $_ } @$lines1;
     my @ys = map { length $_ } @$lines2;
+    my @no_space_lines1 = map { _ignore_spaces $_ } @$lines1;
+    my @no_space_lines2 = map { _ignore_spaces $_ } @$lines2;
+
     my @diag;
     my $diag = sub {
         my ($x, $y) = @_;
         $x < @$lines1 && $y < @$lines2 or return; # Out of ranges
 
         ($diag[$y][$x] //= do {
-            my $sdiff = sdiff(_ignore_spaces $lines1->[$x], _ignore_spaces $lines2->[$y]);
-            $sdiff = _recover_ignored_terms($lines1->[$x], $lines2->[$y], $sdiff);
+            my $sdiff = sdiff($no_space_lines1[$x], $no_space_lines2[$y]);
             my $cost = sum map {
                 {'-' => 1, '+' => 1, 'c' => 2, 'u' => 0}->{$_->[0]}
             } @$sdiff;
@@ -212,7 +214,9 @@ sub _line_diff ($$) {
             unshift @results, ['-', (join "", @{$lines1->[$next_node->[0]]}), ""];
         } else {
             # MODIFIED(diag)
-            unshift @results, @{$diag[$next_node->[1]][$next_node->[0]]{diff}};
+            my $raw_diff = $diag[$next_node->[1]][$next_node->[0]]{diff};
+            my $diff = _recover_ignored_terms($lines1->[$next_node->[0]], $lines2->[$next_node->[1]], $raw_diff);
+            unshift @results, @$diff;
         }
 
         $node = $next_node;
