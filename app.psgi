@@ -16,7 +16,8 @@ my $app_diff = sub {
     my $text_to   = Encode::decode 'UTF-8', ($req->param('text_to')   // '');
     my $html_body = html_diff(
         $text_from, $text_to,
-        $req->param('is_word_diff')
+        $req->param('is_word_diff'),
+        $req->param('diff-type') eq 'line'
     );
 
     my $res = Plack::Response->new(200);

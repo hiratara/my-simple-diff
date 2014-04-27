@@ -22,6 +22,7 @@ sub _parse_by_regex ($$) {
 sub _parse_words ($) { _parse_by_regex $_[0], qr/\w+|\s+|[^\w\s]+/ }
 sub _parse_chars ($) { _parse_by_regex $_[0], qr/\w|\s+|[^\w\s]/ }
 sub _parse_lines ($) { _parse_by_regex $_[0], qr/[^\n]*(?:\n|[^\n]$)/ }
+sub _parse_paragraphs ($) { _parse_by_regex $_[0], qr/.*?(?:\r?\n\r?\n|\r\r|.\Z)/sm }
 
 sub _ignore_spaces ($) {
     my $ref_contents = shift;
@@ -224,11 +225,13 @@ sub _line_diff ($$) {
     \@results;
 }
 
-sub html_diff ($$;$) {
-    my ($text1, $text2, $is_word_diff) = @_;
+sub html_diff ($$;$$) {
+    my ($text1, $text2, $is_word_diff, $is_line_diff) = @_;
+    my $line_parser = $is_line_diff ? \&_parse_lines : \&_parse_paragraphs;
     my $parser = $is_word_diff ? \&_parse_words : \&_parse_chars;
-    my @from = map { $parser->($_) } @{_parse_lines $text1};
-    my @to   = map { $parser->($_) } @{_parse_lines $text2};
+
+    my @from = map { $parser->($_) } @{$line_parser->($text1)};
+    my @to   = map { $parser->($_) } @{$line_parser->($text2)};
     my $sdiff = _line_diff(\@from, \@to);
 
     _diff_to_html(_normarize_diff($sdiff));
