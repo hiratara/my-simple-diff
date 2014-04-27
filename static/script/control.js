@@ -7,11 +7,15 @@ $(function ($) {
             timeout: 10000,
             success: function(result, textStatus, xhr) {
                 $("#display-result").html(result);
+                $("input,textarea,select", $form).prop("disabled", false);
             },
             error: function(xhr, textStatus, error) {
                 alert("some error detected. status=" + textStatus + ", error=" + error);
+                $("input,textarea,select", $form).prop("disabled", false);
             }
         });
+
+        $("input,textarea,select", $form).prop("disabled", true);
     }
 
     $("#main_from").change(function () {
