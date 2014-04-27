@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use utf8;
 use List::MoreUtils qw(any);
+use MyDiff::Heap;
 use Algorithm::Diff qw(sdiff);
 use Exporter qw(import);
 our @EXPORT_OK = 'html_diff';
@@ -156,28 +157,20 @@ sub _line_diff ($$) {
         };
     };
 
-    my @queue;
+    my $queue = MyDiff::Heap->new;
     my @status;  # $stat[$y][$x] = {from => [$x, $y], expect => $n, queued => bool};
 
     # CAUTION! You must prepare @status before you call this method
     my $push_node = sub ($) {
         my $node = shift;
         my $st = $status[$node->[1]][$node->[0]];
-        for my $idx (0 .. $#queue) {
-            my $_st = $status[$queue[$idx][1]][$queue[$idx][0]];
-            if ($st->{expect} < $st->{expect}) { # sort by expect value
-                splice @queue, $idx, 0, $node;
-                return;
-            }
-        }
-
-        push @queue, $node; # push to last
+        $queue->push(- $st->{expect} => $node); # Use negative values as the priority
     };
 
     $status[0][0] = {expect => ($inf_left_estimate->([0, 0])), queued => 1};
     $push_node->([0, 0]);
 
-    while (my $node = shift @queue) {
+    while (my $node = $queue->pop) {
         my ($x, $y) = @$node;
         last if $x == @xs && $y == @ys; # GOAL!
 
