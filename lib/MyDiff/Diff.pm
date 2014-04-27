@@ -4,7 +4,9 @@ use warnings;
 use utf8;
 use List::MoreUtils qw(any);
 use MyDiff::Heap;
-use Algorithm::Diff::XS qw(sdiff);
+# FIXME: XS version can't handle UTF-8 strings
+# use Algorithm::Diff::XS qw(LCSidx);
+use Algorithm::Diff qw(LCSidx);
 use Exporter qw(import);
 our @EXPORT_OK = 'html_diff';
 
@@ -111,6 +113,26 @@ sub _diff_to_html ($) {
     join '', @outputs;
 }
 
+sub _lcsidx_to_sdiff ($$$$) {
+    my ($line1, $line2, $lcsidx1, $lcsidx2) = @_;
+    my @result;
+
+    my ($idx1, $idx2) = (0, 0);
+    for my $i (0 .. $#$lcsidx1) {
+        push @result, ['-', $line1->[$idx1++], ''] while $idx1 < $lcsidx1->[$i];
+        push @result, ['+', '', $line2->[$idx2++]] while $idx2 < $lcsidx2->[$i];
+
+        # Add items which is contained by LCS
+        push @result, ['u', $line1->[$idx1++], $line2->[$idx2++]];
+    }
+
+    # Add left parts
+    push @result, ['-', $line1->[$idx1++], ''] while $idx1 < @$line1;
+    push @result, ['+', '', $line2->[$idx2++]] while $idx2 < @$line2;
+
+    \@result;
+}
+
 sub _line_diff ($$) {
     use List::Util qw(sum);
     my ($lines1, $lines2) = @_;
@@ -125,11 +147,10 @@ sub _line_diff ($$) {
         $x < @$lines1 && $y < @$lines2 or return; # Out of ranges
 
         ($diag[$y][$x] //= do {
-            my $sdiff = sdiff($no_space_lines1[$x], $no_space_lines2[$y]);
-            my $cost = sum map {
-                {'-' => 1, '+' => 1, 'c' => 2, 'u' => 0}->{$_->[0]}
-            } @$sdiff;
-            {cost => $cost, diff => $sdiff};
+            my ($lcsidx1, $lcsidx2) = LCSidx($no_space_lines1[$x], $no_space_lines2[$y]);
+            my $cost = @{$no_space_lines1[$x]} + @{$no_space_lines2[$y]}
+                       - @$lcsidx1- @$lcsidx2;
+            {cost => $cost, lcsidx1 => $lcsidx1, lcsidx2 => $lcsidx2};
         })->{cost};
     };
 
@@ -215,8 +236,12 @@ sub _line_diff ($$) {
             unshift @results, ['-', (join "", @{$lines1->[$next_node->[0]]}), ""];
         } else {
             # MODIFIED(diag)
-            my $raw_diff = $diag[$next_node->[1]][$next_node->[0]]{diff};
-            my $diff = _recover_ignored_terms($lines1->[$next_node->[0]], $lines2->[$next_node->[1]], $raw_diff);
+            my $line1 = $lines1->[$next_node->[0]];
+            my $line2 = $lines2->[$next_node->[1]];
+            my $lcsidx1 = $diag[$next_node->[1]][$next_node->[0]]{lcsidx1};
+            my $lcsidx2 = $diag[$next_node->[1]][$next_node->[0]]{lcsidx2};
+            my $raw_diff = _lcsidx_to_sdiff($line1, $line2, $lcsidx1, $lcsidx2);
+            my $diff = _recover_ignored_terms($line1, $line2, $raw_diff);
             unshift @results, @$diff;
         }
 
